@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-const API_BASE_URL = (import.meta.env.VITE_API_URL);
+const API_BASE_URL = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
 
 const defaultCustomerForm = {
   name: "",
@@ -75,14 +75,25 @@ function App() {
   }, [token]);
 
   async function apiFetch(path, options = {}) {
-    const response = await fetch(`${API_BASE_URL}${path}`, {
-      ...options,
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...(options.headers || {})
-      }
-    });
+    if (!API_BASE_URL) {
+      throw new Error("A URL da API n\u00e3o foi configurada. Defina VITE_API_URL no frontend.");
+    }
+
+    let response;
+    try {
+      response = await fetch(`${API_BASE_URL}${path}`, {
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(options.headers || {})
+        }
+      });
+    } catch {
+      throw new Error(
+        `N\u00e3o foi poss\u00edvel conectar na API em ${API_BASE_URL}. Verifique se o backend est\u00e1 online e se o CORS permite a origem ${window.location.origin}.`
+      );
+    }
 
     if (response.status === 401) {
       logout();
